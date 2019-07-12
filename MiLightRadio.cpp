@@ -7,43 +7,49 @@
 
 #include "MiLightRadio.h"
 
-#define PACKET_ID(packet) ( ((packet[1] & 0xF0)<<24) | (packet[2]<<16) | (packet[3]<<8) | (packet[7]) )
-
+#define PACKET_ID(packet) (((packet[1] & 0xF0) << 24) | (packet[2] << 16) | (packet[3] << 8) | (packet[7]))
 
 MiLightRadio::MiLightRadio(AbstractPL1167 &pl1167)
-  : _pl1167(pl1167) {
+    : _pl1167(pl1167)
+{
   _waiting = false;
 }
 
-int MiLightRadio::begin(uint8_t CHANNELS[], uint16_t syncword_one, uint16_t syncword_two, int max_length )
+int MiLightRadio::begin(uint8_t CHANNELS[], uint16_t syncword_one, uint16_t syncword_two, int max_length)
 {
   int retval = _pl1167.open();
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
   retval = _pl1167.setCRC(true);
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
   retval = _pl1167.setPreambleLength(3);
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
   retval = _pl1167.setTrailerLength(4);
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
   retval = _pl1167.setSyncword(syncword_one, syncword_two);
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
   retval = _pl1167.setMaxPacketLength(max_length);
-  if (retval < 0) {
+  if (retval < 0)
+  {
     return retval;
   }
 
@@ -52,25 +58,32 @@ int MiLightRadio::begin(uint8_t CHANNELS[], uint16_t syncword_one, uint16_t sync
   return 0;
 }
 
-bool MiLightRadio::available(uint8_t CHANNELS[] )
+bool MiLightRadio::available(uint8_t CHANNELS[])
 {
-  if (_waiting) {
+  if (_waiting)
+  {
     return true;
   }
 
-  if (_pl1167.receive(CHANNELS[0]) > 0) {
+  if (_pl1167.receive(CHANNELS[0]) > 0)
+  {
     size_t packet_length = sizeof(_packet);
-    if (_pl1167.readFIFO(_packet, packet_length) < 0) {
+    if (_pl1167.readFIFO(_packet, packet_length) < 0)
+    {
       return false;
     }
-    if (packet_length == 0 || packet_length != _packet[0] + 1U) {
+    if (packet_length == 0 || packet_length != _packet[0] + 1U)
+    {
       return false;
     }
 
     uint32_t packet_id = PACKET_ID(_packet);
-    if (packet_id == _prev_packet_id) {
+    if (packet_id == _prev_packet_id)
+    {
       _dupes_received++;
-    } else {
+    }
+    else
+    {
       _prev_packet_id = packet_id;
       _waiting = true;
     }
@@ -84,19 +97,21 @@ int MiLightRadio::dupesReceived()
   return _dupes_received;
 }
 
-
 int MiLightRadio::read(uint8_t frame[], size_t &frame_length)
 {
-  if (!_waiting) {
+  if (!_waiting)
+  {
     frame_length = 0;
     return -1;
   }
 
-  if (frame_length > sizeof(_packet) - 1) {
+  if (frame_length > sizeof(_packet) - 1)
+  {
     frame_length = sizeof(_packet) - 1;
   }
 
-  if (frame_length > _packet[0]) {
+  if (frame_length > _packet[0])
+  {
     frame_length = _packet[0];
   }
 
@@ -106,26 +121,28 @@ int MiLightRadio::read(uint8_t frame[], size_t &frame_length)
   return _packet[0];
 }
 
-int MiLightRadio::write(uint8_t frame[], size_t frame_length, uint8_t CHANNELS[])
+int MiLightRadio::write(uint8_t frame[], size_t frame_length, uint8_t CHANNELS[], size_t NUM_CHANNELS)
 {
-  if (frame_length > sizeof(_out_packet) - 1) {
+  if (frame_length > sizeof(_out_packet) - 1)
+  {
     return -1;
   }
 
   memcpy(_out_packet + 1, frame, frame_length);
   _out_packet[0] = frame_length;
 
-  int retval = resend(CHANNELS);
-  if (retval < 0) {
+  int retval = resend(CHANNELS, NUM_CHANNELS);
+  if (retval < 0)
+  {
     return retval;
   }
   return frame_length;
 }
 
-int MiLightRadio::resend(uint8_t CHANNELS[])
+int MiLightRadio::resend(uint8_t CHANNELS[], size_t NUM_CHANNELS)
 {
-  int NUM_CHANNELS = 3;
-  for (size_t i = 0; i < NUM_CHANNELS; i++) {
+  for (size_t i = 0; i < NUM_CHANNELS; i++)
+  {
     _pl1167.writeFIFO(_out_packet, _out_packet[0] + 1);
     _pl1167.transmit(CHANNELS[i]);
   }

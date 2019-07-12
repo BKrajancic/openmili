@@ -18,16 +18,18 @@
 #ifndef MILIGHTRADIO_H_
 #define MILIGHTRADIO_H_
 
-class MiLightRadio {
-  public:
+class MiLightRadio
+{
+public:
     MiLightRadio(AbstractPL1167 &pl1167);
     int begin(uint8_t CHANNELS[], uint16_t syncword_one = 0x147A, uint16_t syncword_two = 0x258B, int max_length = 8);
     bool available(uint8_t CHANNELS[]);
     int read(uint8_t frame[], size_t &frame_length);
     int dupesReceived();
-    int write(uint8_t frame[], size_t frame_length, uint8_t CHANNELS[]);
-    int resend(uint8_t CHANNELS[]);
-  private:
+    int write(uint8_t frame[], size_t frame_length, uint8_t CHANNELS[], const size_t NUM_CHANNELS);
+    int resend(uint8_t CHANNELS[], const size_t NUM_CHANNELS);
+
+private:
     AbstractPL1167 &_pl1167;
     uint32_t _prev_packet_id;
 
@@ -35,7 +37,5 @@ class MiLightRadio {
     bool _waiting;
     int _dupes_received;
 };
-
-
 
 #endif /* MILIGHTRADIO_H_ */
